@@ -1,0 +1,109 @@
+flowchart TD
+    %% ─── Control plane (fire-and-forget) ───
+    EB_A[/"EventBridge Scheduler A<br/>cron 0 8 * * ? *  SGT<br/>retry_policy.max_retry_attempts = 0"/]
+    EB_B[/"EventBridge Scheduler B<br/>cron 15 8 * * ? *  SGT<br/>retry_policy.max_retry_attempts = 0"/]
+
+    EB_A -->|"aws-sdk:lambda:invoke<br/>InvocationType=Event (async)"| TRIG
+    EB_B -->|"sync invoke, retries=0"| HC
+
+    TRIG["Lambda 'waf-report-trigger' (60s)<br/>• run_id = uuid4()<br/>• S3 PUT markers/{date}/{run_id}.json<br/>&nbsp;&nbsp;{status:'started', started_at:now}<br/>• lambda.invoke('runner', Event)<br/>• return in <2s"]
+    RUN["Lambda 'waf-report-runner' (900s)<br/>event_invoke_config.max_retry_attempts = 0<br/>boto3 Config(retries={max_attempts:1},<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;read_timeout=850)<br/>• invoke_agent_runtime(supervisor, sync)<br/>• on completion: S3 PUT marker {status:'completed'}<br/>• on Lambda timeout: marker stays 'started'"]
+
+    TRIG -->|"async invoke<br/>event_invoke_config.max_retry_attempts = 0"| RUN
+    RUN -->|"invoke_agent_runtime (sync)"| SUP
+
+    %% ─── Data plane (supervisor pipeline) ───
+    subgraph SUP_BOX["Supervisor Runtime (Claude Sonnet 4.6)"]
+        direction TB
+        SUP["Supervisor LLM"]
+        SUP --> |"1"| DT["current_datetime"]
+        SUP --> |"2"| ANA["invoke_analyzer"]
+        SUP --> |"3"| S3R["list_pending_findings (S3)"]
+        SUP --> |"4"| VAL["invoke_validator"]
+        SUP --> |"5"| EXE["invoke_executor (dry_run)<br/>SKIP if 0 rule changes"]
+        SUP --> |"6"| ARC["archive_processed_findings"]
+
+        CLAIM["★ IDEMPOTENCY CLAIM<br/>S3 PutObject markers/report-sent-{date}.json<br/>IfNoneMatch:'*'<br/>├─ PreconditionFailed → zombie session, exit<br/>└─ Success → proceed"]
+        SUP --> |"7"| CLAIM
+        SUP_CODE["PROGRAMMATIC:<br/>_clean_for_email() +<br/>boto3 SNS publish<br/>(exactly once, plaintext)"]
+        CLAIM --> |"8 (only if claim won)"| SUP_CODE
+
+        DONE["S3 PUT markers/{date}/{run_id}.json<br/>{status:'completed', message_id}"]
+        SUP_CODE --> |"9"| DONE
+    end
+
+    SUP_CODE -->|"source_agent=supervisor"| SNS["SNS Topic → Email"]
+
+    %% ─── Analyzer Detail ───
+    subgraph ANA_BOX["Analyzer Runtime (Claude Opus 4.6)"]
+        direction TB
+        ANA_CODE["Phase 1: _collect_raw_data()<br/>(Programmatic ~24 tool calls)"]
+        ANA_LLM["Phase 2: LLM Analysis<br/>(Recommendations only)"]
+        ANA_MERGE["Phase 3: _merge_with_raw_data()<br/>(LLM override requires reasoning)"]
+        ANA_CODE --> ANA_LLM --> ANA_MERGE
+    end
+    ANA --> ANA_BOX
+
+    %% ─── Analyzer Tools ───
+    subgraph TOOLS["Gateway Lambda (20 tools)"]
+        direction TB
+        T_DATA["DATA COLLECTION"]
+        T1["query_waf_summary"]
+        T2["query_top_blocked"]
+        T3["query_false_positive_signals (×9 IPs)<br/>attack/FP pattern + ratio + RPM + rules"]
+        T4["scan_bypass_candidates"]
+        T5["investigate_ip_deep<br/>JA4 + UA + URIs + COUNT rules"]
+        T6["query_per_domain (Host header)"]
+        T7["query_non_terminating_rules<br/>(downstream BLOCK tracking)"]
+        T8["enrich_ip_reputation (×5 IPs)<br/>AbuseIPDB + ET blocklist"]
+        T9["query_bot_intelligence"]
+        T10["query_label_distribution"]
+
+        T_MGMT["MANAGEMENT"]
+        T11["get_web_acl"]
+        T12["update_web_acl_rules"]
+        T13["list_pending_findings"]
+        T14["archive_processed_findings"]
+        T15["current_datetime"]
+    end
+    ANA_CODE --> TOOLS
+
+    %% ─── Validator ───
+    subgraph VAL_BOX["Validator Runtime (Claude Opus 4.6)"]
+        VAL_LLM["Validates findings<br/>+ WebACL context<br/>+ downstream label deps"]
+    end
+    VAL --> VAL_BOX
+    VAL_BOX --> |"get_web_acl"| TOOLS
+
+    %% ─── Executor ───
+    subgraph EXE_BOX["Executor Runtime (Claude Opus 4.6)"]
+        EXE_LLM["Generates rule change JSON<br/>(dry_run = proposal only)"]
+    end
+    EXE --> EXE_BOX
+
+    %% ─── Data flow between sub-agents ───
+    ANA_BOX --> |"raw data JSON (verbatim)"| VAL_BOX
+    VAL_BOX --> |"validated findings + rejections"| EXE_BOX
+
+    %% ─── Health check plane ───
+    HC["Lambda 'waf-report-healthcheck' (60s)<br/>retries=0<br/><br/>1. list_objects_v2(markers/{today}/)<br/>2. For each marker:<br/>&nbsp;&nbsp;&nbsp;• status='completed' → OK<br/>&nbsp;&nbsp;&nbsp;• status='started' ∧ age > 12min<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ PIPELINE TIMEOUT alert<br/>3. purge markers >7d old"]
+    S3M[("S3 markers/<br/>{YYYY-MM-DD}/{run_id}.json<br/>report-sent-{date}.json")]
+
+    TRIG -.->|"S3 PUT started"| S3M
+    DONE -.->|"S3 PUT completed"| S3M
+    CLAIM -.->|"S3 PUT IfNoneMatch"| S3M
+    HC -.->|"S3 LIST + GET"| S3M
+    HC -->|"pipeline hang alert"| SNS
+
+    %% ─── Styles ───
+    classDef trigger fill:#fff2cc,stroke:#d6b656,stroke-width:2px
+    classDef runner  fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
+    classDef hc      fill:#f8cecc,stroke:#b85450,stroke-width:2px
+    classDef claim   fill:#d5e8d4,stroke:#82b366,stroke-width:2px
+    classDef s3      fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
+
+    class TRIG trigger
+    class RUN runner
+    class HC hc
+    class CLAIM claim
+    class S3M s3

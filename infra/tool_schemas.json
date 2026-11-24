@@ -1,0 +1,403 @@
+[
+  {
+    "name": "query_waf_summary",
+    "description": "Get WAF traffic summary - total requests, blocks, allows, unique IPs",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": {
+          "type": "string",
+          "description": "CloudWatch log group name"
+        },
+        "lookback_hours": {
+          "type": "number",
+          "description": "Hours to look back (default 24)"
+        },
+        "region": {
+          "type": "string",
+          "description": "AWS region"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"query_waf_summary\"",
+          "enum": [
+            "query_waf_summary"
+          ]
+        }
+      },
+      "required": [
+        "log_group",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "query_top_blocked",
+    "description": "Get top blocked IPs with rule info",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": {
+          "type": "string"
+        },
+        "lookback_hours": {
+          "type": "number"
+        },
+        "region": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Max results (default 20)"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"query_top_blocked\"",
+          "enum": [
+            "query_top_blocked"
+          ]
+        }
+      },
+      "required": [
+        "log_group",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "query_suspicious_patterns",
+    "description": "Find suspicious traffic - high request rates, unusual URIs, scanners",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": {
+          "type": "string"
+        },
+        "lookback_hours": {
+          "type": "number"
+        },
+        "region": {
+          "type": "string"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"query_suspicious_patterns\"",
+          "enum": [
+            "query_suspicious_patterns"
+          ]
+        }
+      },
+      "required": [
+        "log_group",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "query_rate_limit_hits",
+    "description": "Get IPs that triggered rate-based rules",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": {
+          "type": "string"
+        },
+        "lookback_hours": {
+          "type": "number"
+        },
+        "region": {
+          "type": "string"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"query_rate_limit_hits\"",
+          "enum": [
+            "query_rate_limit_hits"
+          ]
+        }
+      },
+      "required": [
+        "log_group",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "run_custom_waf_query",
+    "description": "Run a custom CloudWatch Logs Insights query against WAF logs",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string",
+          "description": "Logs Insights query string"
+        },
+        "lookback_hours": {
+          "type": "number"
+        },
+        "region": {
+          "type": "string"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"run_custom_waf_query\"",
+          "enum": [
+            "run_custom_waf_query"
+          ]
+        }
+      },
+      "required": [
+        "log_group",
+        "query",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "get_web_acl",
+    "description": "Get current Web ACL configuration including all rules",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "web_acl_arn": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"get_web_acl\"",
+          "enum": [
+            "get_web_acl"
+          ]
+        }
+      },
+      "required": [
+        "web_acl_arn",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "update_web_acl_rules",
+    "description": "Update Web ACL rules. Dry-run by default. Real updates are refused unless the Lambda has WAF writes enabled; new or changed rules must be COUNT-only, existing rules cannot be removed, max 5 new rules per call.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "web_acl_arn": {
+          "type": "string"
+        },
+        "rules_json": {
+          "type": "string",
+          "description": "JSON array of the COMPLETE rule list (existing rules unchanged plus new COUNT rules)"
+        },
+        "lock_token": {
+          "type": "string",
+          "description": "Ignored. The server fetches a fresh lock token at apply time."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Default true"
+        },
+        "region": {
+          "type": "string"
+        },
+        "_tool": {
+          "type": "string",
+          "description": "Must be \"update_web_acl_rules\"",
+          "enum": [
+            "update_web_acl_rules"
+          ]
+        }
+      },
+      "required": [
+        "web_acl_arn",
+        "rules_json",
+        "_tool"
+      ]
+    }
+  },
+  {
+    "name": "list_pending_findings",
+    "description": "List and read all unprocessed external finding files (json/md/txt/pdf) from S3 pending folder",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "bucket": { "type": "string", "description": "S3 bucket name" },
+        "prefix": { "type": "string", "description": "S3 prefix (default: findings/pending/)" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["list_pending_findings"] }
+      },
+      "required": ["bucket", "_tool"]
+    }
+  },
+  {
+    "name": "archive_processed_findings",
+    "description": "Move processed finding files from pending/ to processed/ folder in S3",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "bucket": { "type": "string", "description": "S3 bucket name" },
+        "files_json": { "type": "string", "description": "JSON array of S3 keys to archive" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["archive_processed_findings"] }
+      },
+      "required": ["bucket", "files_json", "_tool"]
+    }
+  },
+  {
+    "name": "query_false_positive_signals",
+    "description": "Collect FP classification signals for a blocked IP — allow ratio, frequency, multi-rule trigger, match detail attack patterns, URI/cluster similarity — and return verdict (TRUE_POSITIVE / LIKELY_FP / UNDETERMINED)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ip": { "type": "string", "description": "Client IP to analyze" },
+        "log_group": { "type": "string" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["query_false_positive_signals"] }
+      },
+      "required": ["ip", "log_group", "_tool"]
+    }
+  },
+  {
+    "name": "scan_bypass_candidates",
+    "description": "Scan ALLOW traffic for bypass candidates using 3 filters: high URI diversity (crawlers), endpoint hammering (DDoS), unclassified data-center IPs",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": { "type": "string" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["scan_bypass_candidates"] }
+      },
+      "required": ["log_group", "_tool"]
+    }
+  },
+  {
+    "name": "investigate_ip_deep",
+    "description": "Deep profile a specific IP — frequency (peak/avg RPM), actions (ALLOW/BLOCK counts), JA4 fingerprints, User-Agents, top URIs hit, country, bot labels, non-terminating (COUNT) rules triggered",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ip": { "type": "string", "description": "Client IP to investigate" },
+        "log_group": { "type": "string" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["investigate_ip_deep"] }
+      },
+      "required": ["ip", "log_group", "_tool"]
+    }
+  },
+  {
+    "name": "query_label_distribution",
+    "description": "Aggregate WAF label distribution — attack types by rule group, bot signal labels, token status",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": { "type": "string" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["query_label_distribution"] }
+      },
+      "required": ["log_group", "_tool"]
+    }
+  },
+  {
+    "name": "query_bot_intelligence",
+    "description": "Bot intelligence — top 10 categories, verified/unverified ratio, AI bot detailed stats (per-bot volume, top URIs), suspicious flags",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": { "type": "string" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["query_bot_intelligence"] }
+      },
+      "required": ["log_group", "_tool"]
+    }
+  },
+  {
+    "name": "check_volume_anomaly",
+    "description": "Check WoW volume anomaly using CloudWatch Metrics — compares this week vs last week ALLOW/BLOCK traffic and classifies as normal/moderate/significant",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "web_acl_arn": { "type": "string", "description": "Full ARN of the Web ACL" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["check_volume_anomaly"] }
+      },
+      "required": ["web_acl_arn", "_tool"]
+    }
+  },
+  {
+    "name": "current_datetime",
+    "description": "Get current date and time in ISO 8601 format with timezone. Use this to timestamp reports accurately.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "timezone": { "type": "string", "description": "IANA timezone (default: Asia/Singapore)", "default": "Asia/Singapore" },
+        "_tool": { "type": "string", "enum": ["current_datetime"] }
+      },
+      "required": ["_tool"]
+    }
+  },
+  {
+    "name": "query_per_domain",
+    "description": "Per-domain traffic breakdown for multi-domain WebACLs. Shows traffic, block rate, and top triggered rules per Host header.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": { "type": "string" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["query_per_domain"] }
+      },
+      "required": ["log_group", "_tool"]
+    }
+  },
+  {
+    "name": "query_non_terminating_rules",
+    "description": "Query COUNT-mode (non-terminating) rules with match counts. Identifies: (1) standalone COUNT rules that are promotion candidates for BLOCK, (2) COUNT rules whose labels feed downstream BLOCK rules (not promotion candidates).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "log_group": { "type": "string" },
+        "web_acl_arn": { "type": "string", "description": "Web ACL ARN to check downstream label dependencies" },
+        "lookback_hours": { "type": "number" },
+        "region": { "type": "string" },
+        "_tool": { "type": "string", "enum": ["query_non_terminating_rules"] }
+      },
+      "required": ["log_group", "_tool"]
+    }
+  },
+  {
+    "name": "enrich_ip_reputation",
+    "description": "Enrich an IP with external threat intelligence: AbuseIPDB score/reports/ISP + Proofpoint ET blocklist membership. Requires ABUSEIPDB_API_KEY env var for AbuseIPDB lookups.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ip": { "type": "string", "description": "IP address to look up" },
+        "_tool": { "type": "string", "enum": ["enrich_ip_reputation"] }
+      },
+      "required": ["ip", "_tool"]
+    }
+  },
+  {
+    "name": "check_coverage_gaps",
+    "description": "Check WAF coverage gaps — verifies if Bot Control, rate-based rules, and Anti-DDoS managed rule groups are present in the Web ACL. Returns missing layers with recommendations.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "web_acl_arn": { "type": "string", "description": "Full ARN of the Web ACL" },
+        "region": { "type": "string", "description": "AWS region" },
+        "_tool": { "type": "string", "enum": ["check_coverage_gaps"] }
+      },
+      "required": ["web_acl_arn", "_tool"]
+    }
+  }
+]

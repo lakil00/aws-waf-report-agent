@@ -1,0 +1,6 @@
+forbid(
+  principal,
+  action == AgentCore::Action::"${target_name}___update_web_acl_rules",
+  resource == AgentCore::Gateway::"${gateway_arn}"
+)
+when { context.input has dry_run && context.input.dry_run == false };

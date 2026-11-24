@@ -1,0 +1,37 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+dist/
+build/
+.terraform/
+*.tfstate*
+terraform.tfvars
+infra/*.zip
+infra/tfplan
+infra/tfplan.*
+.DS_Store
+
+# Test / tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editors
+.idea/
+.vscode/
+
+# Local AI tooling / scratch
+.kiro/
+.kirograph/
+.claude/
+.tmp/

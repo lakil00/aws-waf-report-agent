@@ -1,0 +1,8 @@
+permit(
+  principal == AgentCore::IamEntity::"${principal_id}",
+  action in
+  [AgentCore::Action::"${target_name}___get_web_acl",
+   AgentCore::Action::"${target_name}___update_web_acl_rules",
+   AgentCore::Action::"${target_name}___current_datetime"],
+  resource == AgentCore::Gateway::"${gateway_arn}"
+);

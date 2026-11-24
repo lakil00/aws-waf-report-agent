@@ -1,0 +1,5 @@
+region           = "us-east-1"
+web_acl_arn      = "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/my-acl/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+log_group        = "aws-waf-logs-my-acl"
+sns_topic_arn    = "arn:aws:sns:us-east-1:123456789012:waf-reports"
+abuseipdb_api_key = ""  # Free: https://www.abuseipdb.com/account/api — 1000 checks/day

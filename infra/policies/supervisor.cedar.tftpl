@@ -1,0 +1,8 @@
+permit(
+  principal == AgentCore::IamEntity::"${principal_id}",
+  action in
+  [AgentCore::Action::"${target_name}___current_datetime",
+   AgentCore::Action::"${target_name}___list_pending_findings",
+   AgentCore::Action::"${target_name}___archive_processed_findings"],
+  resource == AgentCore::Gateway::"${gateway_arn}"
+);

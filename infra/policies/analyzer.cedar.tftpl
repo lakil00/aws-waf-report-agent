@@ -1,0 +1,21 @@
+permit(
+  principal == AgentCore::IamEntity::"${principal_id}",
+  action in
+  [AgentCore::Action::"${target_name}___query_waf_summary",
+   AgentCore::Action::"${target_name}___query_top_blocked",
+   AgentCore::Action::"${target_name}___query_suspicious_patterns",
+   AgentCore::Action::"${target_name}___query_rate_limit_hits",
+   AgentCore::Action::"${target_name}___run_custom_waf_query",
+   AgentCore::Action::"${target_name}___query_false_positive_signals",
+   AgentCore::Action::"${target_name}___scan_bypass_candidates",
+   AgentCore::Action::"${target_name}___investigate_ip_deep",
+   AgentCore::Action::"${target_name}___query_non_terminating_rules",
+   AgentCore::Action::"${target_name}___query_label_distribution",
+   AgentCore::Action::"${target_name}___query_bot_intelligence",
+   AgentCore::Action::"${target_name}___check_volume_anomaly",
+   AgentCore::Action::"${target_name}___check_coverage_gaps",
+   AgentCore::Action::"${target_name}___query_per_domain",
+   AgentCore::Action::"${target_name}___enrich_ip_reputation",
+   AgentCore::Action::"${target_name}___current_datetime"],
+  resource == AgentCore::Gateway::"${gateway_arn}"
+);
